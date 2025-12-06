@@ -1,0 +1,20 @@
+[package]
+name = "logguard_native"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]  # Dynamic library for FFI
+
+[dependencies]
+lazy_static = "1.4"
+regex = "1.10"
+
+[profile.release]
+lto = true
+opt-level = "z"  # Smallest binary size
+codegen-units = 1
+
+[profile.dev]
+opt-level = 0
+debug = true
