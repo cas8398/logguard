@@ -10,16 +10,28 @@ import 'src/ffi_bridge.dart';
 
 enum LogLevel { info, debug, warning, error }
 
-/// Simple LogGuard
 class LogGuard {
   static bool _hooked = false;
   static bool _ffiAvailable = false;
+  static bool useFFI = true;
   static Function(String?, {int? wrapWidth})? _originalDebugPrint;
+
+  /// Global enable/disable flag
+  static bool enabled = true;
 
   /// Run Flutter app with LogGuard protection
   static void runApp(
-    widgets.Widget app,
-  ) async {
+    widgets.Widget app, {
+    bool enable = true, // Add optional enable parameter
+  }) async {
+    enabled = enable; // Set the global flag
+
+    if (!enabled) {
+      // If disabled, run app normally without hooks
+      widgets.runApp(app);
+      return;
+    }
+
     // Initialize FFI
     await _initFFI();
 
@@ -34,7 +46,8 @@ class LogGuard {
       },
       zoneSpecification: ZoneSpecification(
         print: (self, parent, zone, line) {
-          if (_ffiAvailable) {
+          if (_ffiAvailable && enabled) {
+            // Check enabled flag
             final safe = sanitize(line);
             parent.print(zone, safe);
             return;
@@ -47,8 +60,16 @@ class LogGuard {
 
   /// Run any function with LogGuard protection
   static Future<T> runGuarded<T>(
-    T Function() callback,
-  ) async {
+    T Function() callback, {
+    bool enable = true, // Add optional enable parameter
+  }) async {
+    enabled = enable; // Set the global flag
+
+    if (!enabled) {
+      // If disabled, run callback normally
+      return callback();
+    }
+
     await _initFFI();
 
     return runZoned(
@@ -58,7 +79,8 @@ class LogGuard {
       },
       zoneSpecification: ZoneSpecification(
         print: (self, parent, zone, line) {
-          if (_ffiAvailable) {
+          if (_ffiAvailable && enabled) {
+            // Check enabled flag
             final safe = sanitize(line);
             parent.print(zone, safe);
             return;
@@ -71,6 +93,8 @@ class LogGuard {
 
   /// Initialize FFI if available
   static Future<void> _initFFI() async {
+    if (!enabled) return; // Skip if disabled
+
     // Only initialize FFI on supported platforms
     if (!Platform.isAndroid && !Platform.isLinux) {
       _ffiAvailable = false;
@@ -91,7 +115,7 @@ class LogGuard {
 
   /// Setup all log hooks
   static void setupHooks() {
-    if (_hooked) return;
+    if (_hooked || !enabled) return; // Skip if disabled
     _hookDebugPrint();
     _hooked = true;
   }
@@ -105,6 +129,8 @@ class LogGuard {
 
   /// Central sanitize function
   static String sanitize(String message) {
+    if (!enabled) return message; // Return original if disabled
+
     try {
       return _sanitizeFFI(message);
     } catch (e) {
@@ -179,6 +205,28 @@ class LogGuard {
 
   /// Check if FFI is available
   static bool get isFFIAvailable => _ffiAvailable;
+
+  /// Enable LogGuard
+  static void enable() {
+    enabled = true;
+    log('LogGuard enabled');
+  }
+
+  /// Disable LogGuard
+  static void disable() {
+    enabled = false;
+    removeHooks();
+    log('LogGuard disabled');
+  }
+
+  /// Toggle LogGuard
+  static void toggle() {
+    if (enabled) {
+      disable();
+    } else {
+      enable();
+    }
+  }
 
   // Private hooks
   static void _hookDebugPrint() {

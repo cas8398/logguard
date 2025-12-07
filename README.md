@@ -54,6 +54,7 @@ import 'package:logguard/logguard.dart';
 
 void main() {
   LogGuard.runApp(
+    enable: true, // enable / disable sanitize
     MaterialApp(
       home: MyHomePage(),
     ),

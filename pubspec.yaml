@@ -1,6 +1,6 @@
 name: logguard
 description: Securely sanitize logs in Flutter apps by masking passwords, tokens, PII, and other sensitive data with minimal performance overhead.A Flutter plugin for secure log sanitization
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/cas8398/logguard
 repository: https://github.com/cas8398/logguard
 issue_tracker: https://github.com/cas8398/logguard/issues
